@@ -1,33 +1,83 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { initialData } from '../data/mockDatabase';
 
 const HospitalContext = createContext(null);
 
+const STORAGE_PREFIX = 'jeevanta_hms_';
+
+const loadPersistedState = (key, fallbackValue) => {
+  if (typeof window === 'undefined') return fallbackValue;
+  try {
+    const raw = window.localStorage.getItem(`${STORAGE_PREFIX}${key}`);
+    if (raw === null) return fallbackValue;
+    return JSON.parse(raw);
+  } catch {
+    return fallbackValue;
+  }
+};
+
+const savePersistedState = (key, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(value));
+  } catch {
+    // Ignore storage quota or private mode errors
+  }
+};
+
 export const HospitalProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentRole, setCurrentRole] = useState('Doctor');
-  const [currentUser, setCurrentUser] = useState({
-    name: 'Dr. Ananya Sharma',
-    id: 'DOC-101',
-    role: 'Doctor',
-    email: 'ananya.sharma@jeevanta.gov'
-  });
-  const [activeTab, setActiveTab] = useState('Dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    loadPersistedState('isAuthenticated', false)
+  );
+  const [currentRole, setCurrentRole] = useState(() =>
+    loadPersistedState('currentRole', 'Doctor')
+  );
+  const [currentUser, setCurrentUser] = useState(() =>
+    loadPersistedState('currentUser', {
+      name: 'Dr. Ananya Sharma',
+      id: 'DOC-101',
+      role: 'Doctor',
+      email: 'ananya.sharma@jeevanta.gov'
+    })
+  );
+  const [activeTab, setActiveTab] = useState(() =>
+    loadPersistedState('activeTab', 'Dashboard')
+  );
   const [viewMode, setViewMode] = useState('workspace'); // 'workspace' | 'design_system'
   
-  // Data states
-  const [patients, setPatients] = useState(initialData.patientsList);
+  // Data states hydrated from localStorage with initialData fallback
+  const [patients, setPatients] = useState(() =>
+    loadPersistedState('patients', initialData.patientsList)
+  );
   const [primaryPatient] = useState(initialData.primaryPatient);
-  const [queue, setQueue] = useState(initialData.queue);
-  const [clinicalTimeline, setClinicalTimeline] = useState(initialData.clinicalTimeline);
-  const [prescriptions, setPrescriptions] = useState(initialData.prescriptions);
-  const [labReports, setLabReports] = useState(initialData.labReports);
-  const [inventory, setInventory] = useState(initialData.inventory);
-  const [wards, setWards] = useState(initialData.wards);
-  const [vitalsLogs, setVitalsLogs] = useState(initialData.vitalsLogs);
-  const [staff, setStaff] = useState(initialData.staff);
-  const [auditLogs, setAuditLogs] = useState(initialData.auditLogs);
+  const [queue, setQueue] = useState(() =>
+    loadPersistedState('queue', initialData.queue)
+  );
+  const [clinicalTimeline, setClinicalTimeline] = useState(() =>
+    loadPersistedState('clinicalTimeline', initialData.clinicalTimeline)
+  );
+  const [prescriptions, setPrescriptions] = useState(() =>
+    loadPersistedState('prescriptions', initialData.prescriptions)
+  );
+  const [labReports, setLabReports] = useState(() =>
+    loadPersistedState('labReports', initialData.labReports)
+  );
+  const [inventory, setInventory] = useState(() =>
+    loadPersistedState('inventory', initialData.inventory)
+  );
+  const [wards, setWards] = useState(() =>
+    loadPersistedState('wards', initialData.wards)
+  );
+  const [vitalsLogs, setVitalsLogs] = useState(() =>
+    loadPersistedState('vitalsLogs', initialData.vitalsLogs)
+  );
+  const [staff, setStaff] = useState(() =>
+    loadPersistedState('staff', initialData.staff)
+  );
+  const [auditLogs, setAuditLogs] = useState(() =>
+    loadPersistedState('auditLogs', initialData.auditLogs)
+  );
   const [toastMessage, setToastMessage] = useState(null);
   const [showWorkflowModal, setShowWorkflowModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -35,6 +85,22 @@ export const HospitalProvider = ({ children }) => {
   const [deviceMode, setDeviceMode] = useState('auto'); // 'auto' | 'mobile' | 'tablet' | 'laptop' | 'desktop'
   const isMobileNavOpen = isSidebarOpen;
   const setIsMobileNavOpen = setIsSidebarOpen;
+
+  // Automatically sync state changes to localStorage
+  useEffect(() => { savePersistedState('isAuthenticated', isAuthenticated); }, [isAuthenticated]);
+  useEffect(() => { savePersistedState('currentRole', currentRole); }, [currentRole]);
+  useEffect(() => { savePersistedState('currentUser', currentUser); }, [currentUser]);
+  useEffect(() => { savePersistedState('activeTab', activeTab); }, [activeTab]);
+  useEffect(() => { savePersistedState('patients', patients); }, [patients]);
+  useEffect(() => { savePersistedState('queue', queue); }, [queue]);
+  useEffect(() => { savePersistedState('clinicalTimeline', clinicalTimeline); }, [clinicalTimeline]);
+  useEffect(() => { savePersistedState('prescriptions', prescriptions); }, [prescriptions]);
+  useEffect(() => { savePersistedState('labReports', labReports); }, [labReports]);
+  useEffect(() => { savePersistedState('inventory', inventory); }, [inventory]);
+  useEffect(() => { savePersistedState('wards', wards); }, [wards]);
+  useEffect(() => { savePersistedState('vitalsLogs', vitalsLogs); }, [vitalsLogs]);
+  useEffect(() => { savePersistedState('staff', staff); }, [staff]);
+  useEffect(() => { savePersistedState('auditLogs', auditLogs); }, [auditLogs]);
 
   const toggleSidebar = () => {
     // If mobile viewport or mobile deviceMode
@@ -58,6 +124,32 @@ export const HospitalProvider = ({ children }) => {
       });
     }
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Reset all persisted localStorage data back to factory initialData defaults
+  const resetHospitalData = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(window.localStorage).forEach((key) => {
+          if (key.startsWith(STORAGE_PREFIX)) {
+            window.localStorage.removeItem(key);
+          }
+        });
+      } catch {
+        // Ignore storage errors
+      }
+    }
+    setPatients(initialData.patientsList);
+    setQueue(initialData.queue);
+    setClinicalTimeline(initialData.clinicalTimeline);
+    setPrescriptions(initialData.prescriptions);
+    setLabReports(initialData.labReports);
+    setInventory(initialData.inventory);
+    setWards(initialData.wards);
+    setVitalsLogs(initialData.vitalsLogs);
+    setStaff(initialData.staff);
+    setAuditLogs(initialData.auditLogs);
+    showToast('Demo data reset to factory defaults!', 'info');
   };
 
   // Login handler
@@ -564,7 +656,8 @@ export const HospitalProvider = ({ children }) => {
       recordVitals,
       addStaffMember,
       toggleStaffStatus,
-      registerAndLoginPatient
+      registerAndLoginPatient,
+      resetHospitalData
     }}>
       {children}
     </HospitalContext.Provider>

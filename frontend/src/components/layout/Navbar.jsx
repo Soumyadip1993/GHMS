@@ -9,7 +9,8 @@ import {
   Workflow,
   LogOut,
   X,
-  ShieldCheck
+  ShieldCheck,
+  RotateCcw
 } from 'lucide-react';
 
 export const Navbar = () => {
@@ -23,7 +24,8 @@ export const Navbar = () => {
     logout,
     hasPermission,
     isSidebarOpen,
-    setIsSidebarOpen
+    setIsSidebarOpen,
+    resetHospitalData
   } = useHospital();
   
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -210,6 +212,16 @@ export const Navbar = () => {
                 >
                   <Workflow className="w-4 h-4 text-slate-400" />
                   <span>6-Step Hospital Workflow</span>
+                </button>
+                <button
+                  onClick={() => {
+                    resetHospitalData();
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:text-amber-700 hover:bg-amber-50 rounded-xl flex items-center gap-2.5 cursor-pointer font-medium transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4 text-slate-400" />
+                  <span>Reset Local Browser Data</span>
                 </button>
               </div>
 
